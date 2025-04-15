@@ -121,7 +121,7 @@ class SharkWave(QMainWindow):
         main_widget.setLayout(main_layout)
 
         self.nav_list = QListWidget()
-        self.nav_list.addItems(["Inicio", "Biblioteca", "Spotify", "YouTube", "Podcasts"])
+        self.nav_list.addItems(["Home", "Library", "Spotify", "YouTube", "Podcasts"])
         self.nav_list.setFixedWidth(150)
         self.nav_list.setFont(QFont("Arial", 12))
         self.nav_list.currentRowChanged.connect(self.display_page)
@@ -140,11 +140,11 @@ class SharkWave(QMainWindow):
         page = QWidget()
         layout = QVBoxLayout()
 
-        label = QLabel("Bienvenido a SharkWave 🦈")
+        label = QLabel("Welcome to SharkWave 🦈")
         label.setFont(QFont("Arial", 20))
         label.setAlignment(Qt.AlignCenter)
 
-        self.theme_button = QPushButton("Cambiar tema 🌗")
+        self.theme_button = QPushButton("Switch Theme 🌗")
         self.theme_button.clicked.connect(self.toggle_theme)
         self.theme_button.setFixedWidth(200)
         self.theme_button.setCursor(Qt.PointingHandCursor)
@@ -162,12 +162,12 @@ class SharkWave(QMainWindow):
         self.library_page_widget = QWidget()
         self.library_layout = QVBoxLayout()
 
-        label = QLabel("Tu biblioteca de música")
+        label = QLabel("Your Music Library")
         label.setFont(QFont("Arial", 16))
         label.setAlignment(Qt.AlignLeft)
 
         self.search_box = QLineEdit()
-        self.search_box.setPlaceholderText("Buscar por Artista, Álbum o Canción")
+        self.search_box.setPlaceholderText("Search by Artist, Album or Song")
         self.search_box.textChanged.connect(self.filter_library)
 
         self.music_list = QListWidget()
@@ -216,14 +216,14 @@ class SharkWave(QMainWindow):
         self.music_list.clear()
         self.track_paths = []
 
-        artistas = sorted(os.listdir(self.music_folder))
-        for artista in artistas:
-            artista_path = os.path.join(self.music_folder, artista)
-            if not os.path.isdir(artista_path):
+        artists = sorted(os.listdir(self.music_folder))
+        for artist in artists:
+            artist_path = os.path.join(self.music_folder, artist)
+            if not os.path.isdir(artist_path):
                 continue
 
-            item = QListWidgetItem(artista)
-            item.setData(Qt.UserRole, artista_path)
+            item = QListWidgetItem(artist)
+            item.setData(Qt.UserRole, artist_path)
             self.music_list.addItem(item)
 
     def open_item(self, item):
@@ -363,7 +363,7 @@ class SharkWave(QMainWindow):
     def placeholder_page(self, name):
         page = QWidget()
         layout = QVBoxLayout()
-        label = QLabel(f"Sección de {name} (en desarrollo)")
+        label = QLabel(f"{name} section (under development)")
         label.setFont(QFont("Arial", 16))
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
