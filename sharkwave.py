@@ -3,8 +3,8 @@ import os
 import vlc
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QListWidget, QPushButton, QStackedWidget, QListWidgetItem,
-    QSlider, QGraphicsOpacityEffect
+    QLabel, QListWidget, QPushButton, QStackedWidget, QLineEdit,
+    QSlider, QGraphicsOpacityEffect, QListWidgetItem
 )
 from PyQt5.QtGui import QIcon, QFont, QPixmap
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation
@@ -84,7 +84,7 @@ dark_theme = """
 class SharkWave(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.dark_mode = True  # Empieza en modo oscuro
+        self.dark_mode = True
         self.apply_theme()
         self.setWindowTitle("SharkWave")
         self.setWindowIcon(QIcon("shark_icon.png"))
@@ -166,15 +166,19 @@ class SharkWave(QMainWindow):
         label.setFont(QFont("Arial", 16))
         label.setAlignment(Qt.AlignLeft)
 
+        self.search_box = QLineEdit()
+        self.search_box.setPlaceholderText("Buscar por Artista, Álbum o Canción")
+        self.search_box.textChanged.connect(self.filter_library)
+
         self.music_list = QListWidget()
-        self.music_list.itemDoubleClicked.connect(self.play_music_from_list)
+        self.music_list.setSpacing(2)
+        self.music_list.itemDoubleClicked.connect(self.open_item)
 
         self.load_music_library()
 
-        self.play_button = QPushButton("▶️ Play")
-        self.play_button.clicked.connect(self.play_music)
-        self.stop_button = QPushButton("⏹ Stop")
-        self.stop_button.clicked.connect(self.stop_music)
+        self.play_pause_button = QPushButton("▶️ Play")
+        self.play_pause_button.clicked.connect(self.toggle_play_pause)
+
         self.next_button = QPushButton("⏭ Next")
         self.next_button.clicked.connect(self.next_track)
         self.prev_button = QPushButton("⏮ Prev")
@@ -195,11 +199,11 @@ class SharkWave(QMainWindow):
 
         controls = QHBoxLayout()
         controls.addWidget(self.prev_button)
-        controls.addWidget(self.play_button)
-        controls.addWidget(self.stop_button)
+        controls.addWidget(self.play_pause_button)
         controls.addWidget(self.next_button)
 
         self.library_layout.addWidget(label)
+        self.library_layout.addWidget(self.search_box)
         self.library_layout.addWidget(self.music_list)
         self.library_layout.addLayout(controls)
         self.library_layout.addWidget(self.slider)
@@ -217,47 +221,83 @@ class SharkWave(QMainWindow):
             artista_path = os.path.join(self.music_folder, artista)
             if not os.path.isdir(artista_path):
                 continue
-            albums = sorted(
-                os.listdir(artista_path),
-                key=lambda a: os.path.getmtime(os.path.join(artista_path, a)),
-                reverse=True
-            )
+
+            item = QListWidgetItem(artista)
+            item.setData(Qt.UserRole, artista_path)
+            self.music_list.addItem(item)
+
+    def open_item(self, item):
+        path = item.data(Qt.UserRole)
+        if os.path.isdir(path):
+            self.open_folder(path)
+        elif os.path.isfile(path):
+            self.play_music_from_list(item)
+
+    def open_folder(self, path):
+        self.music_list.clear()
+        self.track_paths = []
+
+        if os.path.isdir(path):
+            albums = sorted(os.listdir(path))
             for album in albums:
-                album_path = os.path.join(artista_path, album)
-                if not os.path.isdir(album_path):
-                    continue
-                for cancion in os.listdir(album_path):
-                    if cancion.endswith(('.mp3', '.wav', '.flac')):
-                        full_path = os.path.join(album_path, cancion)
-                        item = QListWidgetItem(f"{artista} - {album} - {cancion}")
-                        item.setData(Qt.UserRole, full_path)
-                        self.music_list.addItem(item)
-                        self.track_paths.append(full_path)
+                album_path = os.path.join(path, album)
+                if os.path.isdir(album_path):
+                    item = QListWidgetItem(album)
+                    item.setData(Qt.UserRole, album_path)
+                    self.music_list.addItem(item)
+            self.load_songs(path)
+
+    def load_songs(self, album_path):
+        songs = sorted([f for f in os.listdir(album_path) if f.endswith(('.mp3', '.flac', '.wav'))])
+        for song in songs:
+            song_path = os.path.join(album_path, song)
+            item = QListWidgetItem(song)
+            item.setData(Qt.UserRole, song_path)
+            self.music_list.addItem(item)
+            self.track_paths.append(song_path)
 
     def play_music_from_list(self, item):
         path = item.data(Qt.UserRole)
-        self.current_track_index = self.track_paths.index(path)
-        self.play_music()
+        if path in self.track_paths:
+            self.current_track_index = self.track_paths.index(path)
+            self.current_position = 0
+            self.play_music()
+
+    def filter_library(self):
+        search_text = self.search_box.text().lower()
+        for i in range(self.music_list.count()):
+            item = self.music_list.item(i)
+            item.setHidden(False)
+            if search_text and not any(search_text in part.lower() for part in item.text().split('/')):
+                item.setHidden(True)
+
+    def toggle_play_pause(self):
+        if self.player.is_playing():
+            self.current_position = self.player.get_time() // 1000
+            self.player.pause()
+            self.play_pause_button.setText("▶️ Play")
+        else:
+            if self.player.get_state() in [vlc.State.Ended, vlc.State.NothingSpecial]:
+                self.play_music()
+            else:
+                self.player.play()
+                self.player.set_time(self.current_position * 1000)
+                self.timer.start(1000)
+            self.play_pause_button.setText("⏸ Pause")
 
     def play_music(self):
         if 0 <= self.current_track_index < len(self.track_paths):
             path = self.track_paths[self.current_track_index]
             media = vlc.Media(path)
             self.player.set_media(media)
-
-            if self.current_position > 0:
-                self.player.set_time(self.current_position * 1000)
-
             self.player.play()
+
+            QTimer.singleShot(200, lambda: self.player.set_time(self.current_position * 1000))
+
             self.slider.setValue(0)
             self.update_cover()
             self.timer.start(1000)
-
-    def stop_music(self):
-        self.player.stop()
-        self.timer.stop()
-        self.current_position = self.player.get_time() // 1000
-        self.slider.setValue(self.current_position)
+            self.play_pause_button.setText("⏸ Pause")
 
     def next_track(self):
         if self.current_track_index + 1 < len(self.track_paths):
@@ -303,18 +343,19 @@ class SharkWave(QMainWindow):
             self.animate_cover()
 
     def get_album_cover(self):
-        current_track = self.track_paths[self.current_track_index]
-        album_path = os.path.dirname(current_track)
-        for file in os.listdir(album_path):
-            if file.lower().endswith(('jpg', 'jpeg', 'png')):
-                return os.path.join(album_path, file)
+        if 0 <= self.current_track_index < len(self.track_paths):
+            current_track = self.track_paths[self.current_track_index]
+            album_path = os.path.dirname(current_track)
+            for file in os.listdir(album_path):
+                if file.lower().endswith(('jpg', 'jpeg', 'png')):
+                    return os.path.join(album_path, file)
         return None
 
     def animate_cover(self):
         opacity_effect = QGraphicsOpacityEffect(self.cover_label)
         self.cover_label.setGraphicsEffect(opacity_effect)
         animation = QPropertyAnimation(opacity_effect, b"opacity")
-        animation.setDuration(1000)  # Duración de 1 segundo
+        animation.setDuration(1000)
         animation.setStartValue(0)
         animation.setEndValue(1)
         animation.start()
