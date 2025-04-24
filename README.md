@@ -1,5 +1,5 @@
-![Version](https://img.shields.io/badge/version-PreAlfa-red)
-![by](https://img.shields.io/badge/by-S3RGI09-blue)
+![Version](https://img.shields.io/badge/version-PreAlfa-red) 
+![by](https://img.shields.io/badge/by-S3RGI09-blue) 
 ![License](https://img.shields.io/badge/license-Apache2.0-purple)
 
 # SharkWave Pre-Alfa
