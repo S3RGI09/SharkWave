@@ -2,7 +2,7 @@
 ![by](https://img.shields.io/badge/by-S3RGI09-blue) 
 ![License](https://img.shields.io/badge/license-Apache2.0-purple)
 
-# SharkWave Pre-Alfa
+# SharkWave
 <img src="https://github.com/user-attachments/assets/9c0f03e0-18db-4d44-a89f-7494d66aeb55" alt="sharkwave" width="200">  
 
 Who doesn't remember **iTunes**? I miss it. I always used it to listen to music when Spotify wasn't so popular. But *why not merge **iTunes** with **Spotify** and **YouTube***, and give it my personal touch? The result was this: **SharkWave**.
